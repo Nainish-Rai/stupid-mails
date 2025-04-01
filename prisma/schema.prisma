@@ -14,13 +14,14 @@ datasource db {
 }
 
 model User {
-  id                String    @id @default(uuid())
-  email             String    @unique
+  id                String    @id @default(cuid())
+  email             String?   @unique
   name              String?
   gmailAccessToken  String? // OAuth token for Gmail API
   gmailRefreshToken String? // Refresh token for Gmail API
   tokenExpiresAt    DateTime? // Token expiration timestamp
   profilePicture    String?
+  // Remove classificationPrompt field - we'll use UserPreference.customPrompt instead
 
   // Relationships
   emails          Email[]
@@ -30,8 +31,9 @@ model User {
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  emailVerified Boolean
+  emailVerified DateTime?
   image         String?
+  password      String?
   sessions      Session[]
   accounts      Account[]
 
@@ -39,7 +41,7 @@ model User {
 }
 
 model Email {
-  id            String   @id @default(uuid())
+  id            String   @id @default(cuid())
   gmailId       String   @unique // Gmail API message ID
   subject       String?
   snippet       String? // Short preview (not full content for privacy)
@@ -47,6 +49,8 @@ model Email {
   receivedAt    DateTime
   isRead        Boolean  @default(false)
   isPrioritized Boolean  @default(false) // Part of Top 20
+  category      String?  // Add this field for classification
+  categoryConfidence Float? // Add this field for confidence score
 
   // Relationships
   user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -56,6 +60,8 @@ model Email {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([userId, gmailId])
+  @@index([userId, category])
   @@index([userId, receivedAt])
 }
 
@@ -90,7 +96,7 @@ model EmailLabel {
 
 model UserPreference {
   id                  String  @id @default(uuid())
-  customPrompt        String? // Classification instructions
+  customPrompt        String? @db.Text // Classification instructions
   prioritySenders     String? // JSON array of important senders
   ignoredSenders      String? // JSON array of senders to ignore
   contentKeywords     String? // JSON array of important keywords
@@ -169,4 +175,20 @@ model Verification {
   updatedAt  DateTime?
 
   @@map("verification")
+}
+
+// New model for detailed classification records
+model EmailClassification {
+  id           String   @id @default(cuid())
+  emailId      String
+  userId       String
+  category     String
+  confidence   Float    @default(0)
+  reason       String?  @db.Text
+  classifiedAt DateTime @default(now())
+  feedback     String?  // For user feedback on classification accuracy
+
+  @@unique([emailId, userId])
+  @@index([userId, category])
+  @@index([classifiedAt])
 }

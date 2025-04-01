@@ -2,19 +2,19 @@
 
 ## Core Functionality
 
-### Title: Automated Email Classification and Labeling
+### Title: Automated Email Classification and In-App Labeling
 
 As an overwhelmed email user,
-I want my emails to be automatically categorized using AI and labeled directly in Gmail,
+I want my emails to be automatically categorized using AI and labeled within the app,
 So that I can quickly identify important messages without feeling anxious about my inbox.
 
 Acceptance Criteria:
 
-1. System securely connects to user's Gmail account using OAuth
+1. System securely connects to user's Gmail account using OAuth with read-only access
 2. AI analyzes email content, sender, and context using the user's personalized criteria
-3. System applies appropriate Gmail labels from predefined categories (ATTN, TAKE-A-LOOK, MARKETING, etc.)
-4. Classification process completes within 15 minutes of email receipt
-5. Labeled emails appear in Gmail with visual distinction for easy identification
+3. System applies appropriate labels within the app from predefined categories (ATTN, TAKE-A-LOOK, MARKETING, etc.)
+4. Classification process completes within 15 minutes of email retrieval
+5. Labeled emails appear in the app interface with visual distinction for easy identification
 
 ### Title: Personalized Classification Criteria
 
@@ -44,34 +44,48 @@ Acceptance Criteria:
 4. Images are handled appropriately (alt text preserved when useful)
 5. Content processing adapts to various email formats (plain text, HTML, newsletters)
 
+### Title: Top Emails Display
+
+As a busy email user,
+I want to see the top 20 emails categorized by AI in my app dashboard,
+So that I can quickly focus on what's most important without diving into my full inbox.
+
+Acceptance Criteria:
+
+1. App displays the top 20 emails based on AI classification prioritization
+2. Each email shows sender, subject, label category, and timestamp
+3. User can quickly open or take action on emails from this display
+4. List refreshes automatically when new classifications are completed
+5. User can filter the top emails view by specific label categories
+
 ## Setup and Configuration
 
 ### Title: Easy Gmail Integration
 
 As a new user,
-I want a simple, guided process to connect the tool to my Gmail account,
-So that I can start using the product without technical expertise.
+I want a simple, guided process to connect the tool to my Gmail account with read-only access,
+So that I can start using the product without technical expertise or security concerns.
 
 Acceptance Criteria:
 
-1. Clear step-by-step instructions for granting necessary Gmail permissions
+1. Clear step-by-step instructions for granting necessary read-only Gmail permissions
 2. Secure OAuth implementation following Google's best practices
-3. Transparent explanation of required permissions with privacy assurances
+3. Transparent explanation of required permissions with privacy assurances emphasizing read-only access
 4. Verification step confirms successful connection
 5. Process takes less than 3 minutes to complete
 
-### Title: Classification Label Setup
+### Title: In-App Classification Label Setup
 
 As a new user,
-I want predefined label categories that I can customize,
+I want predefined label categories that I can customize within the app,
 So that the organization system matches my workflow and preferences.
 
 Acceptance Criteria:
 
 1. System creates default labels (ATTN, FK-U, MARKETING, TAKE-A-LOOK, HMMMM)
-2. User can modify, add, or remove label categories
-3. Labels visually display in Gmail with customizable colors
-4. Labels are created with appropriate visibility settings
+2. User can modify, add, or remove label categories from the app settings
+3. Labels visually display in the app with customizable colors
+4. Label preferences are saved to user's profile
 5. Changes to label structure don't disrupt previously categorized emails
 
 ## User Experience
@@ -223,5 +237,3 @@ Acceptance Criteria:
 3. Export of classification data to other systems via API
 4. Trigger actions based on specific classifications (e.g., auto-reply)
 5. Mobile app compatibility for on-the-go email management
-
-Would you like me to expand on any particular area of these user stories or create additional stories for specific aspects of the product?

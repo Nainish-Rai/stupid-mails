@@ -1,7 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   useGmailEmails,
   useGmailLabels,
   useGmailSync,
+  useBatchClassify,
+  useClassifyEmail,
 } from "@/lib/gmail-hooks";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +20,11 @@ import { RefreshCw, Filter, Inbox, Search } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+// type Label = {
+//   id: string;
+//   name: string;
+//   gmailLabelId?: string;
+// };
 
 export function EmailList() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -41,6 +49,12 @@ export function EmailList() {
   // Mutation for syncing emails
   const { mutate: syncEmails, isPending: isSyncing } = useGmailSync();
 
+  // Add classification mutations
+  const { mutate: classifyEmail, isPending: isClassifying } =
+    useClassifyEmail();
+  const { mutate: batchClassify, isPending: isBatchClassifying } =
+    useBatchClassify();
+
   // Handle search input
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +68,16 @@ export function EmailList() {
         ? prev.filter((id) => id !== labelId)
         : [...prev, labelId]
     );
+  };
+
+  // Function to handle batch classification
+  const handleBatchClassify = () => {
+    batchClassify({ batchSize: 20, onlyNew: true });
+  };
+
+  // Function to classify a single email
+  const handleClassifyEmail = (emailId: string) => {
+    classifyEmail(emailId);
   };
 
   return (
@@ -94,9 +118,9 @@ export function EmailList() {
             labelsData?.labels && (
               <div className="flex flex-wrap gap-2">
                 {labelsData.labels
-                  .filter((label) => !label.name.includes("CATEGORY_"))
+                  .filter((label: any) => !label.name.includes("CATEGORY_"))
                   .slice(0, 10)
-                  .map((label) => (
+                  .map((label: any) => (
                     <Badge
                       key={label.id}
                       variant={
@@ -119,7 +143,7 @@ export function EmailList() {
           )}
         </div>
 
-        {/* Email list */}
+        {/* Email list - modified to show categories */}
         {emailsLoading ? (
           <div className="space-y-4">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -139,7 +163,7 @@ export function EmailList() {
           </div>
         ) : emailsData?.emails && emailsData.emails.length > 0 ? (
           <div className="space-y-2">
-            {emailsData.emails.map((email) => (
+            {emailsData.emails.map((email: any) => (
               <div
                 key={email.id}
                 className={`p-4 border rounded-md hover:bg-secondary/50 cursor-pointer transition-colors ${!email.isRead ? "border-l-4 border-l-primary" : ""}`}
@@ -151,6 +175,27 @@ export function EmailList() {
                   </div>
                 </div>
                 <div className="font-medium mt-1">{email.subject}</div>
+
+                {/* Add classification badge if available */}
+                {email.category && (
+                  <Badge
+                    variant="outline"
+                    className={`mt-1 ${
+                      email.category === "ATTN"
+                        ? "bg-red-100 text-red-800"
+                        : email.category === "FK-U"
+                          ? "bg-orange-100 text-orange-800"
+                          : email.category === "MARKETING"
+                            ? "bg-blue-100 text-blue-800"
+                            : email.category === "TAKE-A-LOOK"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-gray-100 text-gray-800"
+                    }`}
+                  >
+                    {email.category}
+                  </Badge>
+                )}
+
                 <div className="text-sm text-muted-foreground mt-1 line-clamp-2">
                   {email.snippet}
                 </div>
@@ -162,15 +207,15 @@ export function EmailList() {
                     <div className="flex flex-wrap gap-1 mt-2">
                       {email.labelIds
                         .filter(
-                          (id) =>
+                          (id: string) =>
                             !id.includes("CATEGORY_") &&
                             id !== "INBOX" &&
                             id !== "UNREAD"
                         )
                         .slice(0, 3)
-                        .map((labelId) => {
+                        .map((labelId: string) => {
                           const label = labelsData.labels.find(
-                            (l) => l.gmailLabelId === labelId
+                            (l: any) => l.gmailLabelId === labelId
                           );
                           return label ? (
                             <Badge
@@ -189,6 +234,22 @@ export function EmailList() {
                       )}
                     </div>
                   )}
+
+                {/* Add classify button for uncategorized emails */}
+                {!email.category && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleClassifyEmail(email.id);
+                    }}
+                    disabled={isClassifying}
+                  >
+                    {isClassifying ? "Classifying..." : "Classify"}
+                  </Button>
+                )}
               </div>
             ))}
 
@@ -232,16 +293,28 @@ export function EmailList() {
             ? `Showing ${emailsData.emails.length} of ${emailsData.total || "many"} emails`
             : " "}
         </div>
-        <Button
-          variant="default"
-          onClick={() => syncEmails()}
-          disabled={isSyncing}
-        >
-          <RefreshCw
-            className={`h-4 w-4 mr-2 ${isSyncing ? "animate-spin" : ""}`}
-          />
-          {isSyncing ? "Syncing..." : "Sync Emails"}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleBatchClassify}
+            disabled={isBatchClassifying}
+          >
+            <Filter
+              className={`h-4 w-4 mr-2 ${isBatchClassifying ? "animate-spin" : ""}`}
+            />
+            {isBatchClassifying ? "Classifying..." : "Classify Emails"}
+          </Button>
+          <Button
+            variant="default"
+            onClick={() => syncEmails()}
+            disabled={isSyncing}
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${isSyncing ? "animate-spin" : ""}`}
+            />
+            {isSyncing ? "Syncing..." : "Sync Emails"}
+          </Button>
+        </div>
       </CardFooter>
     </Card>
   );

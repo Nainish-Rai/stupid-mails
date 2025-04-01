@@ -142,3 +142,70 @@ export function useApplyLabelsToEmail() {
     },
   });
 }
+
+// Hook for classifying a single email
+export function useClassifyEmail() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (emailId: string) =>
+      fetchWithAuth("/api/gmail/emails/classify", {
+        method: "POST",
+        body: JSON.stringify({ emailId }),
+      }),
+    onSuccess: (data) => {
+      // After classification, invalidate queries to refresh data
+      console.log(data, "classification data");
+      queryClient.invalidateQueries({ queryKey: ["gmail", "emails"] });
+    },
+  });
+}
+
+// Hook for batch classifying emails
+export function useBatchClassify() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      batchSize = 10,
+      onlyNew = true,
+    }: {
+      batchSize?: number;
+      onlyNew?: boolean;
+    }) =>
+      fetchWithAuth(
+        `/api/gmail/emails/classify/batch?batchSize=${batchSize}&onlyNew=${onlyNew}`,
+        { method: "GET" }
+      ),
+    onSuccess: () => {
+      // After batch classification, invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ["gmail", "emails"] });
+    },
+  });
+}
+
+// Hook for fetching user's classification settings
+export function useClassificationSettings() {
+  return useQuery({
+    queryKey: ["classification", "settings"],
+    queryFn: () => fetchWithAuth("/api/user/classification-settings"),
+  });
+}
+
+// Hook for updating classification settings
+export function useUpdateClassificationSettings() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (settings: { classificationPrompt: string }) =>
+      fetchWithAuth("/api/user/classification-settings", {
+        method: "POST",
+        body: JSON.stringify(settings),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["classification", "settings"],
+      });
+    },
+  });
+}
