@@ -155,6 +155,71 @@ export class EmailErrorBoundary extends React.Component<
 }
 ```
 
+### 3. ShadCN UI Component Pattern
+
+```typescript
+// Reusable UI component pattern with ShadCN
+import * as React from "react"
+import { cn } from "@/lib/utils"
+
+// Base component with TypeScript props
+function EmailCard({
+  className,
+  email,
+  onSelect,
+  ...props
+}: EmailCardProps) {
+  return (
+    <Card
+      data-selected={email.selected ? true : undefined}
+      className={cn(
+        "transition-colors hover:bg-accent",
+        email.selected && "bg-accent",
+        className
+      )}
+      {...props}
+    >
+      <CardHeader className="flex flex-row items-start gap-4 space-y-0">
+        <Avatar className="mt-1">
+          <AvatarFallback>{getNameInitials(email.from)}</AvatarFallback>
+        </Avatar>
+        <div className="flex-1 space-y-1">
+          <CardTitle>{email.subject}</CardTitle>
+          <CardDescription className="line-clamp-1">{email.from}</CardDescription>
+        </div>
+        <EmailBadge priority={email.priority} />
+      </CardHeader>
+      <CardContent className="line-clamp-2 text-sm">
+        {email.preview}
+      </CardContent>
+      <CardFooter>
+        <Button variant="ghost" size="sm" onClick={() => onSelect(email.id)}>
+          View
+        </Button>
+        <Separator orientation="vertical" className="mx-2 h-4" />
+        <Button variant="ghost" size="sm" asChild>
+          <Link href={`/email/${email.id}/reply`}>Reply</Link>
+        </Button>
+      </CardFooter>
+    </Card>
+  )
+}
+
+// Type definition for component props
+interface EmailCardProps extends React.ComponentProps<typeof Card> {
+  email: Email;
+  onSelect: (id: string) => void;
+}
+```
+
+**Benefits:**
+
+- Consistent UI through component composition
+- Strong typing with React.ComponentProps
+- Extensible with className and spread props
+- Accessibility built-in through ShadCN primitives
+- Tailwind-based styling for maintainability
+
 ## Authentication Pattern
 
 ### 1. Route Protection
