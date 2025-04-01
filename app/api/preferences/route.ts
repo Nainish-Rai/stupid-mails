@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth-client";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 
 // GET: Retrieve user preferences
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const session = (await getSession()).data?.session;
+    const session = await auth.api.getSession({
+      headers: request.headers,
+    });
 
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -13,7 +15,7 @@ export async function GET() {
     // Get user preferences from the database
     const preferences = await prisma.userPreference.findUnique({
       where: {
-        userId: session.userId,
+        userId: session.user.id,
       },
     });
 
@@ -57,7 +59,9 @@ export async function GET() {
 // POST: Update or create user preferences
 export async function POST(req: Request) {
   try {
-    const session = (await getSession()).data?.session;
+    const session = await auth.api.getSession({
+      headers: req.headers,
+    });
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -76,7 +80,7 @@ export async function POST(req: Request) {
     // Stringify array fields for storage
     const preferences = await prisma.userPreference.upsert({
       where: {
-        userId: session.userId,
+        userId: session.user.id,
       },
       update: {
         customPrompt,
@@ -93,7 +97,7 @@ export async function POST(req: Request) {
           : null,
       },
       create: {
-        userId: session.userId,
+        userId: session.user.id,
         customPrompt,
         prioritySenders: prioritySenders
           ? JSON.stringify(prioritySenders)
