@@ -1,10 +1,7 @@
 "use client";
 
-import {
-  useGmailEmails,
-  useGmailLabels,
-  useBatchClassify,
-} from "@/lib/gmail-hooks";
+import { useBatchClassify } from "@/lib/gmail-hooks";
+import { useEmailList } from "@/lib/hooks/useEmailList";
 import {
   Card,
   CardHeader,
@@ -15,111 +12,23 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { InboxIcon, StarIcon, RefreshCw } from "lucide-react";
-import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-interface Email {
-  id: string;
-  sender: string;
-  subject: string;
-  snippet: string;
-  receivedAt: string;
-  isRead: boolean;
-  isImportant: boolean;
-  category?: string;
-  labelIds?: string[];
-  categoryConfidence?: number;
-}
-
 export function TopEmailsDisplay() {
-  const [prioritizedEmails, setPrioritizedEmails] = useState<Email[]>([]);
+  const { prioritizedEmails, isLoading, error, labelsData, getCategoryConfig } =
+    useEmailList(100, 20);
 
-  console.log(prioritizedEmails);
-
-  // Query for emails with AI classification
-  const {
-    data: emailsData,
-    isLoading: emailsLoading,
-    error: emailsError,
-  } = useGmailEmails({
-    maxResults: 100, // Fetch more to ensure we have enough after prioritization
-  });
-
-  // Query for labels
-  const { data: labelsData, isLoading: labelsLoading } = useGmailLabels();
+  console.log(
+    prioritizedEmails,
+    "prioritized emails",
+    labelsData,
+    "labels data"
+  );
 
   // Batch classification mutation
   const { mutate: batchClassify, isPending: isClassifying } =
     useBatchClassify();
-
-  // Prioritize and filter emails to show top 20
-  useEffect(() => {
-    if (emailsData?.emails && emailsData.emails.length > 0) {
-      const sortedEmails = [...emailsData.emails]
-        // First sort by category priority and confidence
-        .sort((a, b) => {
-          const categoryPriority: Record<string, number> = {
-            ATTN: 1,
-            "TAKE-A-LOOK": 2,
-            HMMMM: 3,
-            "FK-U": 4,
-            MARKETING: 5,
-          };
-
-          const aPriority = a.category
-            ? categoryPriority[a.category] || 999
-            : 999;
-          const bPriority = b.category
-            ? categoryPriority[b.category] || 999
-            : 999;
-
-          // If priorities are equal, use confidence as a tiebreaker
-          if (aPriority === bPriority) {
-            const aConfidence = a.categoryConfidence || 0;
-            const bConfidence = b.categoryConfidence || 0;
-            return bConfidence - aConfidence;
-          }
-
-          return aPriority - bPriority;
-        })
-        // Then sort by date within same category and confidence
-        .sort((a, b) => {
-          if (
-            a.category === b.category &&
-            Math.abs(
-              (a.categoryConfidence || 0) - (b.categoryConfidence || 0)
-            ) < 0.1
-          ) {
-            return (
-              new Date(b.receivedAt).getTime() -
-              new Date(a.receivedAt).getTime()
-            );
-          }
-          return 0;
-        });
-
-      setPrioritizedEmails(sortedEmails.slice(0, 20));
-    }
-  }, [emailsData]);
-
-  // Helper function to get category style
-  const getCategoryStyle = (category: string) => {
-    switch (category) {
-      case "ATTN":
-        return "bg-red-50 border-red-200 text-red-800";
-      case "FK-U":
-        return "bg-orange-50 border-orange-200 text-orange-800";
-      case "MARKETING":
-        return "bg-blue-50 border-blue-200 text-blue-800";
-      case "TAKE-A-LOOK":
-        return "bg-emerald-50 border-emerald-200 text-emerald-800";
-      case "HMMMM":
-        return "bg-purple-50 border-purple-200 text-purple-800";
-      default:
-        return "bg-gray-50 border-gray-200 text-gray-800";
-    }
-  };
 
   const handleBatchClassify = () => {
     batchClassify({ batchSize: 20, onlyNew: true });
@@ -153,7 +62,7 @@ export function TopEmailsDisplay() {
       </CardHeader>
 
       <CardContent className="p-0">
-        {emailsLoading || labelsLoading ? (
+        {isLoading ? (
           <div className="space-y-3 p-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <div
@@ -172,7 +81,7 @@ export function TopEmailsDisplay() {
               Loading your important emails...
             </div>
           </div>
-        ) : emailsError ? (
+        ) : error ? (
           <div className="p-6 text-center">
             <p className="text-red-500">Couldn&apos;t load your emails</p>
             <p className="text-sm text-gray-600 mt-1">Please try again later</p>
@@ -214,9 +123,10 @@ export function TopEmailsDisplay() {
                     <Badge
                       variant="outline"
                       className={cn(
-                        "text-xs font-normal px-2 border",
-                        getCategoryStyle(email.category)
+                        "text-xs font-normal px-2 border group-hover:scale-105 transition-transform",
+                        email.categoryStyle
                       )}
+                      title={getCategoryConfig(email.category)?.description}
                     >
                       {email.category}
                       {email.categoryConfidence &&
@@ -241,13 +151,20 @@ export function TopEmailsDisplay() {
                           .slice(0, 3)
                           .map((labelId) => {
                             const label = labelsData.labels.find(
-                              (l: any) => l.gmailLabelId === labelId
+                              (l: {
+                                id: string;
+                                name: string;
+                                color?: {
+                                  backgroundColor?: string;
+                                  textColor?: string;
+                                };
+                              }) => l.id === labelId
                             );
                             return label ? (
                               <Badge
                                 key={labelId}
                                 variant="secondary"
-                                className="text-xs px-2 bg-opacity-50"
+                                className="text-xs px-2 bg-opacity-50 group-hover:bg-opacity-75 transition-colors"
                                 style={{
                                   backgroundColor:
                                     label.color?.backgroundColor || undefined,
