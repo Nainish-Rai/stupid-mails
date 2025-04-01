@@ -1,36 +1,33 @@
-import { GalleryVerticalEnd } from "lucide-react";
-import { AuthForms } from "@/app/components/auth/AuthForms";
-import Link from "next/link";
+"use client";
+
+import { AuthForms } from "../components/auth/AuthForms";
+import { useSession } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function LoginPage() {
+  const { data: session, isPending } = useSession();
+  const router = useRouter();
+
+  // If already logged in, redirect to dashboard
+  useEffect(() => {
+    if (!isPending && session) {
+      router.push("/dashboard");
+    }
+  }, [session, isPending, router]);
+
   return (
-    <div className="grid min-h-svh lg:grid-cols-2">
-      <div className="bg-muted relative hidden lg:block">
-        <video
-          src="https://nainish-paper-ai.vercel.app/video.mp4"
-          autoPlay
-          loop
-          muted
-          playsInline
-          width={500}
-          height={500}
-          className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-        />
-      </div>
-      <div className="flex flex-col gap-4 p-6 md:p-10">
-        <div className="flex justify-center gap-2 md:justify-start">
-          <Link href="/" className="flex items-center gap-2 font-medium">
-            <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
-              <GalleryVerticalEnd className="size-4" />
-            </div>
-            Stupid Mails
-          </Link>
+    <div className="container flex h-screen w-screen flex-col items-center justify-center">
+      <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+        <div className="flex flex-col space-y-2 text-center">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Sign in to your account
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Enter your email address below to get started
+          </p>
         </div>
-        <div className="flex flex-1 items-center justify-center">
-          <div className="w-full max-w-md">
-            <AuthForms defaultView="signin" />
-          </div>
-        </div>
+        <AuthForms />
       </div>
     </div>
   );

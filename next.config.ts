@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   /* config options here */
 
   images: {
-    domains: ["nainish-paper-ai.vercel.app"],
+    domains: ["nainish-paper-ai.vercel.app", "lh3.googleusercontent.com"],
   },
 };
 

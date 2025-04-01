@@ -2,15 +2,18 @@
 
 import { useSession } from "@/lib/auth-client";
 import { UserProfile } from "@/app/components/auth/UserProfile";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { GmailConnection } from "../components/GmailConnection";
+import { EmailList } from "../components/EmailList";
 
 export default function DashboardPage() {
   const { data: session, isPending } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -18,6 +21,26 @@ export default function DashboardPage() {
       router.push("/login");
     }
   }, [session, isPending, router]);
+
+  useEffect(() => {
+    // Handle URL parameters for notifications/errors
+    const gmail = searchParams.get("gmail");
+    const error = searchParams.get("error");
+
+    if (gmail === "connected") {
+      toast.success("Gmail connected successfully");
+    }
+
+    if (error) {
+      const errorMessages: Record<string, string> = {
+        google_auth_failed: "Failed to authenticate with Google",
+        invalid_oauth_response: "Invalid OAuth response",
+        gmail_not_connected: "Gmail account not connected",
+      };
+
+      toast.error(errorMessages[error] || "An error occurred");
+    }
+  }, [searchParams]);
 
   if (isPending) {
     return (
@@ -72,7 +95,7 @@ export default function DashboardPage() {
 
           <div className="lg:col-span-2 p-6 bg-white rounded-lg shadow-sm">
             <h2 className="text-xl font-semibold mb-4">
-              Welcome, {session.user.name || "User"}!
+              Welcome, {session.user?.name || "User"}!
             </h2>
             <p className="text-gray-600 mb-4">
               You are now signed in to the application. This is a protected
@@ -98,6 +121,10 @@ export default function DashboardPage() {
                 Test Notification
               </Button>
             </div>
+            <section className="space-y-6 mt-6">
+              <GmailConnection />
+              <EmailList />
+            </section>
           </div>
         </div>
       </div>

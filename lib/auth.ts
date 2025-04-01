@@ -17,3 +17,17 @@ export const auth = betterAuth({
     },
   },
 });
+
+// Helper function to get the current user from the session
+export async function currentUser(request: Request) {
+  try {
+    const session = await auth.api.getSession({
+      headers: request.headers,
+    });
+
+    return session?.user || null;
+  } catch (error) {
+    console.error("Error getting current user:", error);
+    return null;
+  }
+}
