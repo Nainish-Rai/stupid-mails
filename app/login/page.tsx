@@ -1,10 +1,36 @@
+import { GalleryVerticalEnd } from "lucide-react";
 import { AuthForms } from "@/app/components/auth/AuthForms";
+import Link from "next/link";
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md">
-        <AuthForms defaultView="signin" />
+    <div className="grid min-h-svh lg:grid-cols-2">
+      <div className="bg-muted relative hidden lg:block">
+        <video
+          src="https://nainish-paper-ai.vercel.app/video.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          width={500}
+          height={500}
+          className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+        />
+      </div>
+      <div className="flex flex-col gap-4 p-6 md:p-10">
+        <div className="flex justify-center gap-2 md:justify-start">
+          <Link href="/" className="flex items-center gap-2 font-medium">
+            <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
+              <GalleryVerticalEnd className="size-4" />
+            </div>
+            Stupid Mails
+          </Link>
+        </div>
+        <div className="flex flex-1 items-center justify-center">
+          <div className="w-full max-w-md">
+            <AuthForms defaultView="signin" />
+          </div>
+        </div>
       </div>
     </div>
   );
