@@ -1,7 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useCustomBatchClassify } from "@/lib/gmail-hooks";
+import {
+  useAutoFetchAndClassify,
+  useCustomBatchClassify,
+} from "@/lib/gmail-hooks";
 import { useEmailList } from "@/lib/hooks/useEmailList";
 import {
   Card,
@@ -40,63 +43,27 @@ export function TopEmailsDisplay() {
   >([]);
   const [showClassifications, setShowClassifications] = useState(false);
 
-  // // Batch classification mutations
-  // const { mutate: batchClassify, isPending: isClassifying } =
-  //   useBatchClassify();
+  // Real Gmail emails classification mutation
+  const { mutate: autoFetchAndClassify, isPending: isAutoClassifying } =
+    useAutoFetchAndClassify();
   const { mutate: customBatchClassify, isPending: isCustomClassifying } =
     useCustomBatchClassify();
 
-  // Handle custom batch classification with example emails
-  const handleCustomBatchClassify = () => {
-    // Example emails for classification demo
-    const exampleEmails = [
+  // Handle real Gmail email classification
+  const handleRealEmailClassify = () => {
+    autoFetchAndClassify(
+      { batchSize: 20 },
       {
-        sender: "investor@vc-firm.com",
-        subject: "Following up on our conversation",
-        content:
-          "Hi there,\n\nIt was great meeting you last week. I've been thinking about your product and I'm interested in discussing investment opportunities. Are you available for a call next Tuesday?\n\nBest regards,\nJane Investor\nPartner, VC Firm",
-        email_date: new Date().toISOString(),
-      },
-      {
-        sender: "marketing@newsletter.com",
-        subject: "Don't miss our HUGE sale this weekend!",
-        content:
-          "FINAL HOURS: 70% OFF EVERYTHING!\n\nDon't miss our biggest sale of the season! All items are 70% off for the next 24 hours only.\n\nSHOP NOW\n\nUnsubscribe | Privacy Policy | View Online",
-        email_date: new Date().toISOString(),
-      },
-      {
-        sender: "noreply@bank.com",
-        subject: "Your monthly statement is ready",
-        content:
-          "Your monthly statement is now available online.\n\nAccount ending in: 1234\nStatement period: 01/01/2023 - 01/31/2023\n\nLog in to your account to view your statement.\n\nThis is an automated message. Please do not reply.",
-        email_date: new Date().toISOString(),
-      },
-      {
-        sender: "sales@cheapdiscount.com",
-        subject: "Hey, what's your phone number?",
-        content:
-          "Hey there,\n\nI saw you visited our website yesterday. I'd like to give you a call to discuss our amazing discount offers.\n\nWhat's your phone number and a good time to call?\n\nThanks,\nSales Team",
-        email_date: new Date().toISOString(),
-      },
-      {
-        sender: "updates@techblog.com",
-        subject: "Weekly Tech Roundup: AI Breakthroughs",
-        content:
-          "This Week in Tech:\n\n1. OpenAI releases new research on language models\n2. Google announces quantum computing milestone\n3. Apple reportedly working on new AR headset\n\nRead more on our website.\n\nYou're receiving this because you subscribed to our newsletter.",
-        email_date: new Date().toISOString(),
-      },
-    ];
-
-    customBatchClassify(exampleEmails, {
-      onSuccess: (response: any) => {
-        if (response && response.results) {
-          setClassificationResults(
-            response.results.filter((r: any) => r.success)
-          );
-          setShowClassifications(true);
-        }
-      },
-    });
+        onSuccess: (response: any) => {
+          if (response && response.results) {
+            setClassificationResults(
+              response.results.filter((r: any) => r.success)
+            );
+            setShowClassifications(true);
+          }
+        },
+      }
+    );
   };
 
   return (
@@ -122,16 +89,18 @@ export function TopEmailsDisplay() {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleCustomBatchClassify}
-              disabled={isCustomClassifying}
+              onClick={handleRealEmailClassify}
+              disabled={isAutoClassifying || isCustomClassifying}
             >
               <RefreshCw
                 className={cn(
                   "h-4 w-4 mr-2",
-                  isCustomClassifying && "animate-spin"
+                  (isAutoClassifying || isCustomClassifying) && "animate-spin"
                 )}
               />
-              {isCustomClassifying ? "Classifying..." : "Demo Batch Classify"}
+              {isAutoClassifying
+                ? "Processing Emails..."
+                : "Classify 20 Gmail Emails"}
             </Button>
             {showClassifications && (
               <Button
@@ -162,8 +131,8 @@ export function TopEmailsDisplay() {
                   No classification results available.
                 </p>
                 <p className="text-sm text-gray-400 mt-2">
-                  Click &quot;Demo Batch Classify&quot; to see sample
-                  classifications.
+                  Click &quot;Classify 20 Gmail Emails&quot; to fetch and
+                  classify your emails.
                 </p>
               </div>
             )}

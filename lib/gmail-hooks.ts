@@ -51,6 +51,75 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
   return data;
 }
 
+// Clean email content function
+function clean_email_content(text: string): string {
+  // Remove style and script tags and their contents
+  text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/g, "");
+  text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/g, "");
+
+  // Remove image tags but keep alt text
+  text = text.replace(/<img[^>]*alt="([^"]*)"[^>]*>/g, "$1");
+  text = text.replace(/<img[^>]*>/g, "");
+
+  // Remove common marketing/footer patterns while preserving quote structure
+  const patterns_to_remove = [
+    /Copyright ©.*?(?=\n|$)/gi,
+    /You are receiving this email because.*?(?=\n|$)/gi,
+    /To connect with us.*?(?=\n|$)/gi,
+    /Our mailing address.*?(?=\n|$)/gi,
+    /Unsubscribe.*?(?=\n|$)/gi,
+    /Add .* to your address book.*?(?=\n|$)/gi,
+  ];
+
+  for (const pattern of patterns_to_remove) {
+    text = text.replace(pattern, "");
+  }
+
+  // Remove HTML attributes that don't affect content
+  text = text.replace(/style="[^"]*"/g, "");
+  text = text.replace(/class="[^"]*"/g, "");
+  text = text.replace(/width="[^"]*"/g, "");
+  text = text.replace(/height="[^"]*"/g, "");
+  text = text.replace(/align="[^"]*"/g, "");
+
+  // Remove URLs and base64 images while preserving link text
+  text = text.replace(/<a[^>]*href="[^"]*"[^>]*>([^<]+)<\/a>/g, "$1");
+  text = text.replace(/data:image\/[^;]+;base64,[a-zA-Z0-9+/]+=*/g, "");
+
+  // Remove remaining HTML tags but preserve their content
+  text = text.replace(/<[^>]+>/g, " ");
+
+  // Clean up whitespace while preserving email quote structure
+  text = text.replace(/ +/g, " "); // Multiple spaces to single space
+  text = text.replace(/\n\s*\n\s*\n+/g, "\n\n"); // Multiple blank lines to double line
+
+  // Preserve common quote markers
+  text = text.replace(/^\s*>+\s*/gm, "> "); // Standardize quote markers
+
+  // Better quote handling - collapse multiple '>' into single '>'
+  const lines = text.split("\n");
+  const cleaned_lines = [];
+  for (const line of lines) {
+    // If line starts with multiple '>', reduce to single '>'
+    if (line.trim().startsWith(">")) {
+      // Remove extra spaces around '>' symbols
+      let cleaned_line = line.replace(/\s*>\s*>\s*/g, "> ");
+      // Ensure only one '>' at start with one space after
+      cleaned_line = cleaned_line.replace(/^\s*>+\s*/g, "> ");
+      cleaned_lines.push(cleaned_line);
+    } else {
+      cleaned_lines.push(line);
+    }
+  }
+
+  text = cleaned_lines.join("\n");
+
+  // Clean up any remaining multiple blank lines
+  text = text.replace(/\n\s*\n\s*\n+/g, "\n\n");
+
+  return text.trim();
+}
+
 // Hook for fetching emails
 export function useGmailEmails(options: EmailFetchOptions = {}) {
   const queryParams = new URLSearchParams();
@@ -205,17 +274,71 @@ export function useBatchClassify() {
   });
 }
 
+// Interface for email input with content
+interface EmailInput {
+  id?: string;
+  sender: string;
+  subject: string;
+  content: string;
+  email_date: string;
+}
+
+// Hook for batch classifying emails with Gmail fetch and cleaning
+export function useAutoFetchAndClassify() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ batchSize = 20 }: { batchSize?: number } = {}) => {
+      // Step 1: Fetch emails from Gmail
+      const emailsResponse = await fetchWithAuth(
+        `/api/gmail/emails?maxResults=${batchSize}`
+      );
+
+      if (!emailsResponse.emails || !Array.isArray(emailsResponse.emails)) {
+        throw new Error("Failed to fetch emails from Gmail");
+      }
+
+      // Step 2: For each email, fetch its full content using the Gmail client
+      const emailsWithContent: EmailInput[] = await Promise.all(
+        emailsResponse.emails.map(async (email: any) => {
+          // Fetch the full email content
+          const fullEmailResponse = await fetchWithAuth(
+            `/api/gmail/emails/${email.id}/content`
+          );
+
+          // Clean the content using our cleaning function
+          const cleanedContent = clean_email_content(
+            fullEmailResponse.content || email.snippet || ""
+          );
+
+          return {
+            id: email.id,
+            sender: email.sender,
+            subject: email.subject,
+            content: cleanedContent,
+            email_date: email.receivedAt,
+          };
+        })
+      );
+
+      // Step 3: Send the batch for classification
+      return fetchWithAuth("/api/gmail/emails/classify/batch", {
+        method: "POST",
+        body: JSON.stringify({ emails: emailsWithContent }),
+      });
+    },
+    onSuccess: (data) => {
+      // After classification, invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ["gmail", "emails"] });
+      console.log(data, "auto-classified emails");
+      return data;
+    },
+  });
+}
+
 // Hook for batch classifying emails with custom content
 export function useCustomBatchClassify() {
   const queryClient = useQueryClient();
-
-  interface EmailInput {
-    id?: string;
-    sender: string;
-    subject: string;
-    content: string;
-    email_date: string;
-  }
 
   return useMutation<BatchClassifyResponse, GmailErrorDetails, EmailInput[]>({
     mutationFn: (emails: EmailInput[]) =>
