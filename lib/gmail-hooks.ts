@@ -5,6 +5,26 @@ import {
   GmailErrorDetails,
 } from "./gmail-types";
 
+// Define return types for custom batch classify
+interface ClassificationResult {
+  input: {
+    sender: string;
+    subject: string;
+    date: string;
+  };
+  classification: string;
+  reason: string;
+  confidence?: number;
+  success: boolean;
+}
+
+interface BatchClassifyResponse {
+  processed: number;
+  successful: number;
+  failed: number;
+  results: ClassificationResult[];
+}
+
 // Helper for making authenticated API calls
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
   const response = await fetch(url, {
@@ -177,9 +197,37 @@ export function useBatchClassify() {
         `/api/gmail/emails/classify/batch?batchSize=${batchSize}&onlyNew=${onlyNew}`,
         { method: "GET" }
       ),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // After batch classification, invalidate queries to refresh data
+      console.log(data, "classification data");
+      queryClient.invalidateQueries({ queryKey: ["gmail", "emails"] });
+    },
+  });
+}
+
+// Hook for batch classifying emails with custom content
+export function useCustomBatchClassify() {
+  const queryClient = useQueryClient();
+
+  interface EmailInput {
+    id?: string;
+    sender: string;
+    subject: string;
+    content: string;
+    email_date: string;
+  }
+
+  return useMutation<BatchClassifyResponse, GmailErrorDetails, EmailInput[]>({
+    mutationFn: (emails: EmailInput[]) =>
+      fetchWithAuth("/api/gmail/emails/classify/batch", {
+        method: "POST",
+        body: JSON.stringify({ emails }),
+      }),
+    onSuccess: (data) => {
       // After batch classification, invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["gmail", "emails"] });
+      console.log(data, "classification data custom");
+      return data;
     },
   });
 }
