@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { createGmailClientForUser } from "@/lib/gmail";
@@ -108,11 +109,11 @@ function handleApiError(error: Error & { code?: string }) {
 // GET /api/gmail/emails/[id]/content - Get full content of a specific email
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Get email ID from route params
-    const emailId = params.id;
+    const emailId = (await params).id;
     if (!emailId) {
       return NextResponse.json(
         {

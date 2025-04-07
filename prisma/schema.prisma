@@ -192,3 +192,12 @@ model EmailClassification {
   @@index([userId, category])
   @@index([classifiedAt])
 }
+
+// Model for waitlist signups
+model WaitlistEntry {
+  id        String   @id @default(cuid())
+  email     String   @unique // Ensure emails are unique
+  createdAt DateTime @default(now())
+
+  @@map("waitlist_entry") // Optional: specify table name
+}

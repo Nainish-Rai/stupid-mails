@@ -46,8 +46,7 @@ export function TopEmailsDisplay() {
   // Real Gmail emails classification mutation
   const { mutate: autoFetchAndClassify, isPending: isAutoClassifying } =
     useAutoFetchAndClassify();
-  const { mutate: customBatchClassify, isPending: isCustomClassifying } =
-    useCustomBatchClassify();
+  const { isPending: isCustomClassifying } = useCustomBatchClassify();
 
   // Handle real Gmail email classification
   const handleRealEmailClassify = () => {
