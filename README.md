@@ -4,6 +4,8 @@
 
 Stupid Mails helps overwhelmed professionals manage their email overload by automatically classifying and prioritizing messages. By integrating with Gmail and leveraging AI, it identifies important emails and presents them in a focused dashboard, reducing decision fatigue and letting you concentrate on what matters most.
 
+![stupidmails](https://github.com/user-attachments/assets/7b227f60-6daa-4c84-b0b6-b0afde92b342)
+
 ![Project Status: In Development](https://img.shields.io/badge/Status-In%20Development-blue)
 
 ## 🌟 Features
@@ -151,4 +153,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 📞 Contact
 
-Project Link: [https://github.com/yourusername/stupid-mails](https://github.com/yourusername/stupid-mails)
+Project Link: [https://github.com/nainish-rai/stupid-mails](https://github.com/nainish-rai/stupid-mails)
