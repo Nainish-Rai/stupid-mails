@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, Mail, Clock } from "lucide-react";
+import { Loader2, Mail, Clock, Star } from "lucide-react";
 
 interface GmailMessage {
   id: string;
@@ -13,6 +13,8 @@ interface GmailMessage {
   receivedAt: string;
   isRead: boolean;
   labelIds: string[];
+  content: string;
+  summary?: string;
 }
 
 interface ApiError {
@@ -22,7 +24,7 @@ interface ApiError {
   };
 }
 
-type EmailType = "today" | "recent";
+type EmailType = "today" | "recent" | "important";
 
 export function GmailConnection() {
   const [emails, setEmails] = useState<GmailMessage[]>([]);
@@ -56,12 +58,23 @@ export function GmailConnection() {
     }
   };
 
+  const getTitle = (type: EmailType) => {
+    switch (type) {
+      case "today":
+        return "Today's Emails";
+      case "recent":
+        return "Recent Emails";
+      case "important":
+        return "Important Emails";
+      default:
+        return "Emails";
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">
-          {emailType === "today" ? "Today's Emails" : "Recent Emails"}
-        </h2>
+        <h2 className="text-xl font-semibold">{getTitle(emailType)}</h2>
         <div className="flex gap-2">
           <Button
             onClick={() => fetchEmails("today")}
@@ -80,6 +93,15 @@ export function GmailConnection() {
           >
             <Clock className="h-4 w-4 mr-2" />
             Recent
+          </Button>
+          <Button
+            onClick={() => fetchEmails("important")}
+            disabled={loading}
+            variant={emailType === "important" ? "default" : "outline"}
+            size="sm"
+          >
+            <Star className="h-4 w-4 mr-2" />
+            Important
           </Button>
         </div>
       </div>
@@ -102,6 +124,11 @@ export function GmailConnection() {
             <Card key={email.id} className="p-4">
               <div className="space-y-2">
                 <div className="font-medium">{email.subject}</div>
+                {email.summary && emailType === "important" && (
+                  <div className="text-sm bg-blue-50 text-blue-700 p-2 rounded">
+                    {email.summary}
+                  </div>
+                )}
                 <div className="text-sm text-gray-600">{email.snippet}</div>
                 <div className="flex justify-between text-sm text-gray-500">
                   <span>From: {email.sender}</span>
