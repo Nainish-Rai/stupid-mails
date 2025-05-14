@@ -149,14 +149,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get today's date at midnight
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Fetch today's emails
+    // Fetch recent emails
     const response = await gmailClient.listEmails({
       maxResults: 50,
-      q: `after:${Math.floor(today.getTime() / 1000)}`,
     });
 
     // Process emails and return with content (no DB saving)
