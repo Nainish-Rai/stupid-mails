@@ -1,50 +1,28 @@
 # Product Context
 
-## Why This Project Exists
+## Project Focus: Gmail Authentication
 
-### Pain Points
+### Current Scope
 
-1. **Email Overwhelm**
+1. **Core Functionality**
 
-   - Professionals struggle with inbox overload
-   - Decision fatigue from constant email triage
-   - Important messages get lost in noise
-   - Time wasted on low-priority emails
+   - Gmail account connection
+   - Secure authentication flow
+   - Connection status management
+   - Basic user session handling
 
-2. **Manual Organization**
+2. **User Experience**
 
-   - Labels/folders require manual maintenance
-   - Inconsistent categorization
-   - No automated priority system
-   - Time-consuming email management
+   - Simple, clean interface
+   - Clear connection status
+   - Minimal friction authentication
+   - Essential feedback system
 
-3. **Context Switching**
-   - Constant inbox checking disrupts work
-   - Difficulty maintaining focus
-   - No clear system for handling emails
-   - Reactive rather than proactive approach
-
-### Solution Vision
-
-1. **Intelligent Automation**
-
-   - AI-powered email categorization
-   - Automatic priority assignment
-   - Smart label management
-   - Proactive clutter reduction
-
-2. **Focused Productivity**
-
-   - Daily Top 20 important emails
-   - Clear action requirements
-   - Reduced decision fatigue
-   - Structured email workflow
-
-3. **Personalized Experience**
-   - Customizable classification rules
-   - Learning from user behavior
-   - Adaptable priority system
-   - Individual workflow optimization
+3. **Technical Foundation**
+   - OAuth integration
+   - Session management
+   - Error handling
+   - Connection state tracking
 
 ## User Experience Goals
 

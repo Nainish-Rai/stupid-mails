@@ -31,7 +31,7 @@ model User {
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  emailVerified DateTime?
+  emailVerified Boolean?
   image         String?
   password      String?
   sessions      Session[]
