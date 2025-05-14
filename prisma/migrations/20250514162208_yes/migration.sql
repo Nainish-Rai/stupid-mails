@@ -1,57 +1,3 @@
-/*
-  Warnings:
-
-  - You are about to drop the column `classification` on the `EmailClassification` table. All the data in the column will be lost.
-  - You are about to drop the column `createdAt` on the `EmailClassification` table. All the data in the column will be lost.
-  - You are about to drop the column `receivedAt` on the `EmailClassification` table. All the data in the column will be lost.
-  - You are about to drop the column `sender` on the `EmailClassification` table. All the data in the column will be lost.
-  - You are about to drop the column `snippet` on the `EmailClassification` table. All the data in the column will be lost.
-  - You are about to drop the column `subject` on the `EmailClassification` table. All the data in the column will be lost.
-  - You are about to drop the column `threadId` on the `EmailClassification` table. All the data in the column will be lost.
-  - You are about to drop the column `updatedAt` on the `EmailClassification` table. All the data in the column will be lost.
-  - You are about to drop the `Account` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `Session` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `User` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `VerificationToken` table. If the table is not empty, all the data it contains will be lost.
-  - A unique constraint covering the columns `[emailId,userId]` on the table `EmailClassification` will be added. If there are existing duplicate values, this will fail.
-  - Added the required column `category` to the `EmailClassification` table without a default value. This is not possible if the table is not empty.
-
-*/
--- DropForeignKey
-ALTER TABLE "Account" DROP CONSTRAINT "Account_userId_fkey";
-
--- DropForeignKey
-ALTER TABLE "Session" DROP CONSTRAINT "Session_userId_fkey";
-
--- DropIndex
-DROP INDEX "EmailClassification_emailId_key";
-
--- AlterTable
-ALTER TABLE "EmailClassification" DROP COLUMN "classification",
-DROP COLUMN "createdAt",
-DROP COLUMN "receivedAt",
-DROP COLUMN "sender",
-DROP COLUMN "snippet",
-DROP COLUMN "subject",
-DROP COLUMN "threadId",
-DROP COLUMN "updatedAt",
-ADD COLUMN     "category" TEXT NOT NULL,
-ADD COLUMN     "classifiedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-ALTER COLUMN "reason" DROP NOT NULL,
-ALTER COLUMN "confidence" SET DEFAULT 0;
-
--- DropTable
-DROP TABLE "Account";
-
--- DropTable
-DROP TABLE "Session";
-
--- DropTable
-DROP TABLE "User";
-
--- DropTable
-DROP TABLE "VerificationToken";
-
 -- CreateTable
 CREATE TABLE "user" (
     "id" TEXT NOT NULL,
@@ -193,12 +139,46 @@ CREATE TABLE "verification" (
 );
 
 -- CreateTable
+CREATE TABLE "EmailClassification" (
+    "id" TEXT NOT NULL,
+    "emailId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "category" TEXT NOT NULL,
+    "confidence" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "reason" TEXT,
+    "classifiedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "feedback" TEXT,
+
+    CONSTRAINT "EmailClassification_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "waitlist_entry" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "waitlist_entry_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ClassifiedEmail" (
+    "id" TEXT NOT NULL,
+    "threadId" TEXT NOT NULL,
+    "subject" TEXT NOT NULL,
+    "snippet" TEXT NOT NULL,
+    "sender" TEXT NOT NULL,
+    "receivedAt" TIMESTAMP(3) NOT NULL,
+    "isRead" BOOLEAN NOT NULL DEFAULT false,
+    "labelIds" TEXT[],
+    "content" TEXT NOT NULL,
+    "classificationType" TEXT,
+    "classificationReason" TEXT,
+    "userId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ClassifiedEmail_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -232,9 +212,6 @@ CREATE INDEX "ProcessingStats_userId_startTime_idx" ON "ProcessingStats"("userId
 CREATE UNIQUE INDEX "session_token_key" ON "session"("token");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "waitlist_entry_email_key" ON "waitlist_entry"("email");
-
--- CreateIndex
 CREATE INDEX "EmailClassification_userId_category_idx" ON "EmailClassification"("userId", "category");
 
 -- CreateIndex
@@ -242,6 +219,18 @@ CREATE INDEX "EmailClassification_classifiedAt_idx" ON "EmailClassification"("cl
 
 -- CreateIndex
 CREATE UNIQUE INDEX "EmailClassification_emailId_userId_key" ON "EmailClassification"("emailId", "userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "waitlist_entry_email_key" ON "waitlist_entry"("email");
+
+-- CreateIndex
+CREATE INDEX "ClassifiedEmail_userId_idx" ON "ClassifiedEmail"("userId");
+
+-- CreateIndex
+CREATE INDEX "ClassifiedEmail_threadId_idx" ON "ClassifiedEmail"("threadId");
+
+-- CreateIndex
+CREATE INDEX "ClassifiedEmail_receivedAt_idx" ON "ClassifiedEmail"("receivedAt");
 
 -- AddForeignKey
 ALTER TABLE "Email" ADD CONSTRAINT "Email_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -266,3 +255,6 @@ ALTER TABLE "session" ADD CONSTRAINT "session_userId_fkey" FOREIGN KEY ("userId"
 
 -- AddForeignKey
 ALTER TABLE "account" ADD CONSTRAINT "account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ClassifiedEmail" ADD CONSTRAINT "ClassifiedEmail_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
