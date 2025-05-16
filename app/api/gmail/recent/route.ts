@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch recent emails
     const response = await gmailClient.listEmails({
-      maxResults: 50,
+      maxResults: 100,
     });
 
     // Process emails and return with content (no DB saving)

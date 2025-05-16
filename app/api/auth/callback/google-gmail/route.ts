@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 const oauth2Client = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URL
+  "http://localhost:3000/api/auth/callback/google-gmail"
 );
 
 // GET /api/auth/callback/google - Handle OAuth callback

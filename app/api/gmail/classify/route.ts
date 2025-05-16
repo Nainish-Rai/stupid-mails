@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
-import { Groq } from "groq-sdk";
+import OpenAI from "openai";
 import { prisma } from "@/lib/prisma";
 
-const groq = new Groq();
+const openai = new OpenAI({
+  apiKey: process.env.GEMINI_API_KEY || "",
+  baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+});
+
 const RECENT_EMAILS_URL = "http://localhost:3000/api/gmail/important";
 
 interface EmailData {
@@ -36,28 +40,36 @@ async function classifyEmails(
       receivedAt: email.receivedAt,
     }));
 
-    const chatCompletion = await groq.chat.completions.create({
+    const chatCompletion = await openai.chat.completions.create({
+      model: "gemini-2.5-flash-preview-04-17",
       messages: [
         {
           role: "system",
           content: `You are an email classifier. You will receive a list of emails and must return a JSON object mapping email IDs to their classifications.
 
 Classification Categories:
-1. ATTN: Personal emails and time-sensitive notifications
-2. FK-U: Sales funnel emails and scams
-3. MARKETING: Company newsletters and general updates
-4. TAKE-A-LOOK: Important service notifications
-5. HMMMM: Uncertain cases
+ATTN: emails that are clearly from a real person that wanted to reach out to me for a specific reason. you can also place high value notifcations here/ time sensitive.
+FK-U: a special place in hell is for these people. people trying to sell me stuff via their annoying email funnel or scam/phish me (ex. "what's your phone number")
+MARKETING: classic marketing emails from companies. safe to ignore type stuff. stuff like ny times/bloomberg type stuff fits in here.
+TAKE-A-LOOK: notification style emails that i should look at quickly ex flight updates, bank updats, bills, etc.
+HMMMM: if you really aren't sure where to put it. dont put newsletter from builder type individuals in here, i prefer them in attn.
 
 Classification Rules:
-- Personal newsletters/investor updates → ATTN
+- Personal message from friend or colleagues → ATTN
 - Tech feature announcements <14 days old → TAKE-A-LOOK
 - Tech feature announcements >14 days old → MARKETING
 - Mass outreach/sales pitches → FK-U
 - Service notifications (banking, flights) → TAKE-A-LOOK
 - News/world updates → MARKETING
-- Personalized builder outreach → ATTN
 - Impersonal outreach → FK-U
+
+Some context on my preferences:
+- i dont care for news type emails/world updates.
+- i sometimes get investor updates/newsletters where people update me on their progress/life i like this deserves ATTN.
+- i get a lot of random builders/founders hit me up. i love that! but hate when its obviously no a personalized email to me. if unsure drop in HMMMM. its okay if these emails are 90+ days old. its better to reply to them vs not reply.
+- i like to read breif emails on an ai/ tech companies latest feature (ex. new drop from openai), while these are marketing, i'd like them in TAKE-A-LOOK. but, if this type of email is 14+ days old just put it in MARKETING.
+- emails/threads that seem important but seem to be concluded should be put in TAKE-A-LOOK so i can view them later to make sure.
+- Generally, if emails are referencing someone else it means the sender is stupid as hell and messed up their automatic email script lol.
 
 REQUIRED OUTPUT FORMAT:
 {
@@ -73,18 +85,13 @@ REQUIRED OUTPUT FORMAT:
           content: JSON.stringify(emailsData),
         },
       ],
-      model: "meta-llama/llama-4-scout-17b-16e-instruct",
       temperature: 0.1,
-      top_p: 0.95,
-      stream: false,
-      response_format: {
-        type: "json_object",
-      },
+      response_format: { type: "json_object" },
     });
 
     const content = chatCompletion.choices[0].message.content;
     if (!content) {
-      throw new Error("No response content from Groq AI");
+      throw new Error("No response content from AI");
     }
 
     const classifications = JSON.parse(content) as Record<
@@ -93,7 +100,7 @@ REQUIRED OUTPUT FORMAT:
     >;
     return new Map(Object.entries(classifications));
   } catch (error) {
-    console.error("Error in Groq AI call:", error);
+    console.error("Error in AI call:", error);
     throw new Error("Failed to classify emails");
   }
 }
@@ -112,8 +119,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // If mode=fetch is provided in the URL, fetch and classify new emails
-    // Otherwise, return existing classified emails from the database
     const url = new URL(request.url);
     const mode = url.searchParams.get("mode");
 
@@ -134,10 +139,8 @@ export async function GET(request: NextRequest) {
       const { emails } =
         (await recentEmailsResponse.json()) as RecentEmailsResponse;
 
-      // Get the classification map
       const classificationsMap = await classifyEmails(emails);
 
-      // Filter and enhance emails with classifications
       const classifiedEmails = emails
         .filter((email: EmailData) => classificationsMap.has(email.id))
         .map((email: EmailData) => ({
@@ -145,7 +148,6 @@ export async function GET(request: NextRequest) {
           classification: classificationsMap.get(email.id),
         }));
 
-      // Save to database (using upsert to avoid duplicates)
       for (const email of classifiedEmails) {
         await prisma.classifiedEmail.upsert({
           where: { id: email.id },
@@ -174,7 +176,6 @@ export async function GET(request: NextRequest) {
         emails: classifiedEmails,
       });
     } else {
-      // Get classified emails for the current user
       const classifiedEmails = await prisma.classifiedEmail.findMany({
         where: {
           userId: user.id,
@@ -192,7 +193,7 @@ export async function GET(request: NextRequest) {
           classificationType: true,
           classificationReason: true,
         },
-        take: 20, // Limit to 20 emails for performance
+        take: 20,
       });
 
       return NextResponse.json({

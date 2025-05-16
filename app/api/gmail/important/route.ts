@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
-import { Groq } from "groq-sdk";
+import OpenAI from "openai";
 
-const groq = new Groq();
+const openai = new OpenAI({
+  apiKey: process.env.GEMINI_API_KEY || "",
+  baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+});
 
 const RECENT_EMAILS_URL = "http://localhost:3000/api/gmail/recent";
 
@@ -39,13 +42,15 @@ async function analyzeEmails(emails: EmailData[]): Promise<GroqResponse> {
       labelIds: email.labelIds,
     }));
 
-    const chatCompletion = await groq.chat.completions.create({
+    const chatCompletion = await openai.chat.completions.create({
+      model: "gemini-2.5-flash-preview-04-17",
       messages: [
         {
           role: "system",
           content: `You are an email analyzer that:
 1. Selects the top 20 most important emails based on urgency, sender credibility, content relevance, and time sensitivity
-2. Creates a brief, actionable summary for each selected email, It should use casual and funny language.
+2. You should ignore the marketing emails and other non-urgent emails from saas or services until they are important.
+3. Creates a brief, actionable summary for each selected email, It should use casual witty and funny language strictly use genz language.
 Return only a JSON object with array 'important_emails' containing objects with 'id' and 'summary' fields.`,
         },
         {
@@ -53,25 +58,19 @@ Return only a JSON object with array 'important_emails' containing objects with 
           content: JSON.stringify(emailsData),
         },
       ],
-      model: "meta-llama/llama-4-scout-17b-16e-instruct",
       temperature: 0.6,
-      // max_completion_tokens: 4096,
-      top_p: 0.95,
-      stream: false,
-      response_format: {
-        type: "json_object",
-      },
+      response_format: { type: "json_object" },
     });
 
     const content = chatCompletion.choices[0].message.content;
     if (!content) {
-      throw new Error("No response content from Groq AI");
+      throw new Error("No response content from AI");
     }
 
     const result = JSON.parse(content) as GroqResponse;
     return result;
   } catch (error) {
-    console.error("Error in Groq AI call:", error);
+    console.error("Error in AI call:", error);
     throw new Error("Failed to analyze emails");
   }
 }
@@ -104,15 +103,12 @@ export async function GET(request: NextRequest) {
     const { emails } =
       (await recentEmailsResponse.json()) as RecentEmailsResponse;
 
-    // Get important emails with summaries
     const analysis = await analyzeEmails(emails);
 
-    // Create a map of summaries for quick lookup
     const summariesMap = new Map(
       analysis.important_emails.map((item) => [item.id, item.summary])
     );
 
-    // Filter and enhance emails with summaries
     const importantEmails = emails
       .filter((email: EmailData) => summariesMap.has(email.id))
       .map((email: EmailData) => ({

@@ -53,15 +53,15 @@ export function ClassifiedEmailsList() {
     switch (type.toLowerCase()) {
       case "important":
         return "bg-red-100 text-red-800";
-      case "urgent":
-        return "bg-orange-100 text-orange-800";
-      case "work":
+      case "fk-u":
+        return "bg-red-100 text-red-800";
+      case "take-a-look":
         return "bg-blue-100 text-blue-800";
-      case "personal":
+      case "attn":
         return "bg-green-100 text-green-800";
-      case "newsletter":
+      case "hmmmm":
         return "bg-purple-100 text-purple-800";
-      case "promotion":
+      case "marketing":
         return "bg-yellow-100 text-yellow-800";
       case "social":
         return "bg-pink-100 text-pink-800";
